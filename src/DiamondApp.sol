@@ -14,7 +14,7 @@ import {DiamondLoupeFacet} from "./facets/DiamondLoupeFacet.sol";
 import {OwnershipFacet} from "./facets/OwnershipFacet.sol";
 import {Ownership} from "./storages/Ownership.sol";
 
-contract App {
+contract DiamondApp {
     using LibDiamond for Diamond.Storage;
 
     constructor(address _owner) payable {
