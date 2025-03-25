@@ -54,18 +54,18 @@ contract DiamondScript is Script {
         }
     }
 
-    function deployDiamond(bytes memory args) internal returns (address) {
-        return deployDiamond(bytes11(uint88(block.timestamp)), args);
-    }
-
     function deployDiamond(bytes11 salt, bytes memory args) internal returns (address) {
+        require(!vm.exists(deploymentsPath), "Diamond already deployed on this network");
         address deployer = msg.sender;
         bytes32 encodedSalt = bytes32(abi.encodePacked(deployer, hex"00", salt));
-        console.log("Deploying diamond...");
+        console.log(string.concat("Deploying ", diamondName, "..."));
         address diamond =
             CreateX.create3(deployer, encodedSalt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), args));
         console.log(string.concat("  ", diamondName, ":"), diamond);
-        vm.writeJson(vm.toString(diamond), deploymentsPath, string.concat(".", diamondName));
+        string memory json = "";
+        json = vm.serializeAddress(json, diamondName, diamond);
+        vm.writeJson(json, deploymentsPath);
+        console.log("Done\n");
         return diamond;
     }
 
@@ -87,16 +87,21 @@ contract DiamondScript is Script {
 
         string[] memory selectorNames = vm.parseJsonKeys(json, ".methodIdentifiers");
         bytes4[] memory selectors = new bytes4[](selectorNames.length);
-        console.log("Selectors:");
+        console.log("  Selectors:");
         for (uint256 i = 0; i < selectorNames.length; ++i) {
             bytes4 selector = bytes4(keccak256(bytes(selectorNames[i])));
             selectors[i] = selector;
-            console.log(string.concat("  ", selectorNames[i], ": ", vm.toString(selector)));
+            console.log(string.concat("    ", selectorNames[i], ": ", vm.toString(selector)));
         }
         return (facet, selectors, selectorNames);
     }
 
     function deployFacets(address diamond, string[] memory facetNames, bytes[] memory args) internal {
+        console.log("Deploying facets...");
+        if (facetNames.length == 0) {
+            console.log("No facets to deploy\n");
+            return;
+        }
         IDiamond.FacetCut[] memory facetCuts = new IDiamond.FacetCut[](facetNames.length);
         if (facetNames.length != args.length) {
             revert("Facet names and args length mismatch");
@@ -112,9 +117,10 @@ contract DiamondScript is Script {
         }
         console.log("Cutting diamond...");
         IDiamondCut(diamond).diamondCut(facetCuts, address(0), "");
+        console.log("Done\n");
     }
 
-    function _buildCut(
+    function _upgradeFacet(
         address diamond,
         address oldFacet,
         address newFacet,
@@ -151,7 +157,7 @@ contract DiamondScript is Script {
                 }
             }
             if (!found) {
-                console.log(string.concat("Removing selector ", vm.toString(oldSelectors[i])));
+                console.log(string.concat("    Removing selector ", vm.toString(oldSelectors[i])));
                 removeSelectors.push(oldSelectors[i]);
             }
         }
@@ -183,17 +189,29 @@ contract DiamondScript is Script {
         for (uint256 i = 0; i < facetNames.length; ++i) {
             console.log("Upgrading facet:", facetNames[i]);
             string memory deploymentsJson = vm.readFile(deploymentsPath);
-            address oldFacet = deploymentsJson.readAddress(string.concat(".", facetNames[i]));
 
             (address newFacet, bytes4[] memory newSelectors, string[] memory newSelectorNames) =
                 _deployNewFacet(facetNames[i], args[i]);
 
-            if (oldFacet == newFacet) {
-                console.log(string.concat("  ", facetNames[i], " is up to date"));
-                continue;
-            }
+            if (deploymentsJson.keyExists(string.concat(".", facetNames[i]))) {
+                address oldFacet = deploymentsJson.readAddress(string.concat(".", facetNames[i]));
 
-            _buildCut(diamond, oldFacet, newFacet, newSelectors, newSelectorNames);
+                if (oldFacet == newFacet) {
+                    console.log(string.concat("  ", facetNames[i], " is up to date"));
+                    continue;
+                }
+
+                _upgradeFacet(diamond, oldFacet, newFacet, newSelectors, newSelectorNames);
+            } else {
+                console.log("  Adding above all selectors");
+                cuts.push(
+                    IDiamond.FacetCut({
+                        facetAddress: newFacet,
+                        action: IDiamond.FacetCutAction.Add,
+                        functionSelectors: newSelectors
+                    })
+                );
+            }
         }
 
         if (removeSelectors.length > 0) {
@@ -209,18 +227,25 @@ contract DiamondScript is Script {
         if (cuts.length > 0) {
             console.log("Applying cuts...");
             IDiamondCut(diamond).diamondCut(cuts, address(0), "");
+            console.log("Done\n");
         } else {
             console.log("No changes to apply");
         }
+    }
+
+    function deploy(bytes memory args) internal returns (address) {
+        return deploy(args, new string[](0), new bytes[](0));
+    }
+
+    function deploy(bytes memory args, bytes11 salt) internal returns (address) {
+        return deploy(args, salt, new string[](0), new bytes[](0));
     }
 
     function deploy(bytes memory args, string[] memory facetNames, bytes[] memory facetArgs)
         internal
         returns (address)
     {
-        address diamond = deployDiamond(args);
-        deployFacets(diamond, facetNames, facetArgs);
-        return diamond;
+        return deploy(args, bytes11(uint88(block.timestamp)), facetNames, facetArgs);
     }
 
     function deploy(bytes memory args, bytes11 salt, string[] memory facetNames, bytes[] memory facetArgs)
