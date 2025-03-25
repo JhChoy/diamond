@@ -56,8 +56,16 @@ contract DiamondScript is Script {
 
     function _deployNewFacet(string memory facetName, bytes memory args) private returns (IDiamond.FacetCut memory) {
         string memory json = vm.readFile(resolveCompiledOutputPath(facetName));
-        address facet = CreateX.create2(msg.sender, abi.encodePacked(json.readBytes(".bytecode.object"), args));
-        console.log(string.concat(facetName, ":"), facet);
+        bytes memory initCode = abi.encodePacked(json.readBytes(".bytecode.object"), args);
+        address facet = CreateX.computeCreate2Address(msg.sender, initCode);
+
+        if (facet.codehash != bytes32(0)) {
+            console.log("Facet already deployed:", facet);
+        } else {
+            address deployed = CreateX.create2(msg.sender, initCode);
+            console.log(string.concat("Deployed ", facetName, ":"), deployed);
+            require(facet == deployed, "Facet address does not match");
+        }
 
         string[] memory selectorNames = vm.parseJsonKeys(json, ".methodIdentifiers");
         bytes4[] memory selectors = new bytes4[](selectorNames.length);

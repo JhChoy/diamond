@@ -21,16 +21,15 @@ library CreateX {
         require(computedAddress == deployed, "Address does not match");
     }
 
+    function computeCreate2Address(address deployer, bytes memory initCode) internal view returns (address) {
+        bytes32 salt = bytes32(abi.encodePacked(deployer, hex"00", bytes11(0)));
+        bytes32 guardedSalt = keccak256(abi.encodePacked(uint256(uint160(deployer)), salt));
+        return ICreateX(CREATEX_ADDRESS).computeCreate2Address(guardedSalt, keccak256(initCode));
+    }
+
     function create2(address deployer, bytes memory initCode) internal returns (address deployed) {
         bytes32 salt = bytes32(abi.encodePacked(deployer, hex"00", bytes11(0)));
 
-        bytes32 guardedSalt = keccak256(abi.encodePacked(uint256(uint160(deployer)), salt));
-        address computedAddress = ICreateX(CREATEX_ADDRESS).computeCreate2Address(guardedSalt, keccak256(initCode));
-        if (computedAddress.codehash != bytes32(0)) {
-            return computedAddress;
-        }
-
         deployed = ICreateX(CREATEX_ADDRESS).deployCreate2(salt, initCode);
-        require(computedAddress == deployed, "Address does not match");
     }
 }
