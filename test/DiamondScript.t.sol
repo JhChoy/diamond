@@ -6,12 +6,12 @@ import "forge-std/Test.sol";
 
 import {DiamondScript} from "../src/helpers/DiamondScript.sol";
 
-contract DiamondScriptTest is Test, DiamondScript("ExampleDiamond") {
+contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
     function setUp() public {}
 
     function test_resolveCompiledOutputPath() public view {
-        string memory path = resolveCompiledOutputPath("ExampleDiamond");
-        assertEq(path, string.concat(vm.projectRoot(), "/out/ExampleDiamond.sol/ExampleDiamond.json"));
+        string memory path = resolveCompiledOutputPath("DiamondApp");
+        assertEq(path, string.concat(vm.projectRoot(), "/out/DiamondApp.sol/DiamondApp.json"));
         path = resolveCompiledOutputPath("FileName.sol:ContractName");
         assertEq(path, string.concat(vm.projectRoot(), "/out/FileName.sol/ContractName.json"));
 
