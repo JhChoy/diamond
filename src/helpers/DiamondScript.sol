@@ -54,17 +54,16 @@ contract DiamondScript is Script {
         }
     }
 
-    function deployDiamond(address owner) internal returns (address) {
-        return deployDiamond(bytes11(uint88(block.timestamp)), owner);
+    function deployDiamond(bytes memory args) internal returns (address) {
+        return deployDiamond(bytes11(uint88(block.timestamp)), args);
     }
 
-    function deployDiamond(bytes11 salt, address owner) internal returns (address) {
+    function deployDiamond(bytes11 salt, bytes memory args) internal returns (address) {
         address deployer = msg.sender;
         bytes32 encodedSalt = bytes32(abi.encodePacked(deployer, hex"00", salt));
         console.log("Deploying diamond...");
-        address diamond = CreateX.create3(
-            deployer, encodedSalt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), abi.encode(owner))
-        );
+        address diamond =
+            CreateX.create3(deployer, encodedSalt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), args));
         console.log(string.concat("  ", diamondName, ":"), diamond);
         vm.writeJson(vm.toString(diamond), deploymentsPath, string.concat(".", diamondName));
         return diamond;
@@ -215,17 +214,20 @@ contract DiamondScript is Script {
         }
     }
 
-    function deploy(address owner, string[] memory facetNames, bytes[] memory facetArgs) internal returns (address) {
-        address diamond = deployDiamond(owner);
+    function deploy(bytes memory args, string[] memory facetNames, bytes[] memory facetArgs)
+        internal
+        returns (address)
+    {
+        address diamond = deployDiamond(args);
         deployFacets(diamond, facetNames, facetArgs);
         return diamond;
     }
 
-    function deploy(address owner, bytes11 salt, string[] memory facetNames, bytes[] memory facetArgs)
+    function deploy(bytes memory args, bytes11 salt, string[] memory facetNames, bytes[] memory facetArgs)
         internal
         returns (address)
     {
-        address diamond = deployDiamond(salt, owner);
+        address diamond = deployDiamond(salt, args);
         deployFacets(diamond, facetNames, facetArgs);
         return diamond;
     }
