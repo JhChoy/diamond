@@ -13,12 +13,18 @@ import {CreateX} from "./CreateX.sol";
 contract DiamondScript is Script {
     using stdJson for string;
 
+    string internal root;
+    string internal network;
+    string internal deploymentsPath;
     string internal diamondName;
     string internal diamondJson;
 
     constructor(string memory diamondName_) {
         diamondName = diamondName_;
         diamondJson = vm.readFile(resolveCompiledOutputPath(diamondName_));
+        root = vm.projectRoot();
+        network = vm.toString(block.chainid);
+        deploymentsPath = string.concat(root, "/deployments/", network, ".json");
     }
 
     function resolveCompiledOutputPath(string memory name) internal view returns (string memory) {
@@ -52,10 +58,11 @@ contract DiamondScript is Script {
             deployer, encodedSalt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), abi.encode(owner))
         );
         console.log(string.concat(diamondName, ":"), diamond);
+        vm.writeJson(vm.toString(diamond), deploymentsPath, ".DiamondApp");
         return diamond;
     }
 
-    function _deployNewFacet(string memory facetName, bytes memory args) private returns (IDiamond.FacetCut memory) {
+    function _deployNewFacet(string memory facetName, bytes memory args) private returns (address, bytes4[] memory) {
         string memory json = vm.readFile(resolveCompiledOutputPath(facetName));
         bytes memory initCode = abi.encodePacked(json.readBytes(".bytecode.object"), args);
         address facet = CreateX.computeCreate2Address(msg.sender, initCode);
@@ -76,9 +83,7 @@ contract DiamondScript is Script {
             selectors[i] = selector;
             console.logBytes4(selector);
         }
-
-        return
-            IDiamond.FacetCut({facetAddress: facet, action: IDiamond.FacetCutAction.Add, functionSelectors: selectors});
+        return (facet, selectors);
     }
 
     function deployFacets(address diamond, string[] memory facetNames, bytes[] memory args) internal {
@@ -87,7 +92,13 @@ contract DiamondScript is Script {
             revert("Facet names and args length mismatch");
         }
         for (uint256 i = 0; i < facetNames.length; ++i) {
-            facetCuts[i] = _deployNewFacet(facetNames[i], args[i]);
+            (address facet, bytes4[] memory selectors) = _deployNewFacet(facetNames[i], args[i]);
+            facetCuts[i] = IDiamond.FacetCut({
+                facetAddress: facet,
+                action: IDiamond.FacetCutAction.Add,
+                functionSelectors: selectors
+            });
+            vm.writeJson(vm.toString(facet), deploymentsPath, string.concat(".", facetNames[i]));
         }
         IDiamondCut(diamond).diamondCut(facetCuts, address(0), "");
     }
@@ -104,7 +115,6 @@ contract DiamondScript is Script {
     {
         address diamond = deployDiamond(salt, owner);
         deployFacets(diamond, facetNames, facetArgs);
-        // todo: store as files?
         return diamond;
     }
 }
