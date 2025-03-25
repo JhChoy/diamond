@@ -10,14 +10,7 @@ import {IDiamondApp} from "../src/interfaces/IDiamondApp.sol";
 import {FacetToAdd} from "./mocks/FacetToAdd.sol";
 
 contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
-    function setUp() public {
-        vm.label(CREATEX_ADDRESS, "CreateX");
-        vm.etch(CREATEX_ADDRESS, CREATEX_BYTECODE);
-
-        if (vm.exists(deploymentsPath)) {
-            vm.removeFile(deploymentsPath);
-        }
-    }
+    function setUp() public {}
 
     function test_resolveCompiledOutputPath() public view {
         string memory path = resolveCompiledOutputPath("DiamondApp");

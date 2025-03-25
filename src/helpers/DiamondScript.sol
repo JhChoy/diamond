@@ -9,6 +9,7 @@ import {IDiamond} from "../interfaces/IDiamond.sol";
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
 import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
 import {ICreateX} from "../interfaces/ICreateX.sol";
+import {CREATEX_ADDRESS, CREATEX_BYTECODE} from "./CreateX.sol";
 import {CreateX} from "./CreateX.sol";
 
 contract DiamondScript is Script {
@@ -32,6 +33,15 @@ contract DiamondScript is Script {
         root = vm.projectRoot();
         network = vm.toString(block.chainid);
         deploymentsPath = string.concat(root, "/deployments/", network, ".json");
+
+        if (block.chainid == 31337) {
+            vm.label(CREATEX_ADDRESS, "CreateX");
+            vm.etch(CREATEX_ADDRESS, CREATEX_BYTECODE);
+
+            if (vm.exists(deploymentsPath)) {
+                vm.removeFile(deploymentsPath);
+            }
+        }
     }
 
     function resolveCompiledOutputPath(string memory name) internal view returns (string memory) {
