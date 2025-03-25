@@ -7,6 +7,7 @@ import {stdJson} from "forge-std/StdJson.sol";
 
 import {IDiamond} from "../interfaces/IDiamond.sol";
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
+import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
 import {ICreateX} from "../interfaces/ICreateX.sol";
 import {CreateX} from "./CreateX.sol";
 
@@ -18,6 +19,12 @@ contract DiamondScript is Script {
     string internal deploymentsPath;
     string internal diamondName;
     string internal diamondJson;
+
+    bytes4[] internal addSelectors;
+    bytes4[] internal replaceSelectors;
+
+    IDiamond.FacetCut[] internal cuts;
+    bytes4[] internal removeSelectors;
 
     constructor(string memory diamondName_) {
         diamondName = diamondName_;
@@ -101,6 +108,100 @@ contract DiamondScript is Script {
             vm.writeJson(vm.toString(facet), deploymentsPath, string.concat(".", facetNames[i]));
         }
         IDiamondCut(diamond).diamondCut(facetCuts, address(0), "");
+    }
+
+    function _buildCut(address diamond, address oldFacet, address newFacet, bytes4[] memory newSelectors) private {
+        console.log(string.concat("Old facet: ", vm.toString(oldFacet)));
+        console.log(string.concat("New facet: ", vm.toString(newFacet)));
+
+        addSelectors = new bytes4[](0);
+        replaceSelectors = new bytes4[](0);
+        removeSelectors = new bytes4[](0);
+
+        // todo: print selector prettier
+        for (uint256 i; i < newSelectors.length; ++i) {
+            address remoteFacet = IDiamondLoupe(diamond).facetAddress(newSelectors[i]);
+            if (remoteFacet == address(0)) {
+                console.log(string.concat("Adding selector ", vm.toString(newSelectors[i])));
+                addSelectors.push(newSelectors[i]);
+            } else if (remoteFacet == oldFacet) {
+                console.log(string.concat("Replacing selector ", vm.toString(newSelectors[i])));
+                replaceSelectors.push(newSelectors[i]);
+            } else {
+                revert("Invalid selector");
+            }
+        }
+
+        bytes4[] memory oldSelectors = IDiamondLoupe(diamond).facetFunctionSelectors(oldFacet);
+        for (uint256 i = 0; i < oldSelectors.length; ++i) {
+            bool found = false;
+            for (uint256 j = 0; j < newSelectors.length; ++j) {
+                if (oldSelectors[i] == newSelectors[j]) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                console.log(string.concat("Removing selector ", vm.toString(oldSelectors[i])));
+                removeSelectors.push(oldSelectors[i]);
+            }
+        }
+        if (addSelectors.length > 0) {
+            cuts.push(
+                IDiamond.FacetCut({
+                    facetAddress: newFacet,
+                    action: IDiamond.FacetCutAction.Add,
+                    functionSelectors: addSelectors
+                })
+            );
+        }
+        if (replaceSelectors.length > 0) {
+            cuts.push(
+                IDiamond.FacetCut({
+                    facetAddress: newFacet,
+                    action: IDiamond.FacetCutAction.Replace,
+                    functionSelectors: replaceSelectors
+                })
+            );
+        }
+    }
+
+    function upgrade(address diamond, string[] memory facetNames, bytes[] memory args) internal {
+        if (facetNames.length != args.length) {
+            revert("Facet names and args length mismatch");
+        }
+
+        for (uint256 i = 0; i < facetNames.length; ++i) {
+            console.log("Upgrading facet:", facetNames[i]);
+            string memory deploymentsJson = vm.readFile(deploymentsPath);
+            address oldFacet = deploymentsJson.readAddress(string.concat(".", facetNames[i]));
+
+            (address newFacet, bytes4[] memory newSelectors) = _deployNewFacet(facetNames[i], args[i]);
+
+            if (oldFacet == newFacet) {
+                console.log(string.concat(facetNames[i], " is up to date"));
+                continue;
+            }
+
+            _buildCut(diamond, oldFacet, newFacet, newSelectors);
+        }
+
+        if (removeSelectors.length > 0) {
+            cuts.push(
+                IDiamond.FacetCut({
+                    facetAddress: address(0),
+                    action: IDiamond.FacetCutAction.Remove,
+                    functionSelectors: removeSelectors
+                })
+            );
+        }
+
+        if (cuts.length > 0) {
+            console.log("Applying cuts...");
+            IDiamondCut(diamond).diamondCut(cuts, address(0), "");
+        } else {
+            console.log("No changes to apply");
+        }
     }
 
     function deploy(address owner, string[] memory facetNames, bytes[] memory facetArgs) internal returns (address) {
