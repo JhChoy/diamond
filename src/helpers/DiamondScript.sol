@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {Script, console} from "forge-std/Script.sol";
 import {stdJson} from "forge-std/StdJson.sol";
+import {VmSafe} from "forge-std/Vm.sol";
 
 import {IDiamond} from "../interfaces/IDiamond.sol";
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
@@ -44,6 +45,11 @@ contract DiamondScript is Script {
         }
     }
 
+    function _getDeployer() internal returns (address) {
+        (VmSafe.CallerMode mode, address msgSender,) = vm.readCallers();
+        return uint256(mode) == 0 ? address(this) : msgSender;
+    }
+
     function resolveCompiledOutputPath(string memory name) internal view returns (string memory) {
         bool hasColon = false;
         assembly {
@@ -66,9 +72,10 @@ contract DiamondScript is Script {
 
     function deployDiamond(bytes11 salt, bytes memory args) internal returns (address) {
         require(!vm.exists(deploymentsPath), "Diamond already deployed on this network");
-        address deployer = msg.sender;
+        address deployer = _getDeployer();
         bytes32 encodedSalt = bytes32(abi.encodePacked(deployer, hex"00", salt));
         console.log(string.concat("Deploying ", diamondName, "..."));
+
         address diamond =
             CreateX.create3(deployer, encodedSalt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), args));
         console.log(string.concat("  ", diamondName, ":"), diamond);
@@ -85,12 +92,13 @@ contract DiamondScript is Script {
     {
         string memory json = vm.readFile(resolveCompiledOutputPath(facetName));
         bytes memory initCode = abi.encodePacked(json.readBytes(".bytecode.object"), args);
-        address facet = CreateX.computeCreate2Address(msg.sender, initCode);
+        address deployer = _getDeployer();
+        address facet = CreateX.computeCreate2Address(deployer, initCode);
 
         if (facet.codehash != bytes32(0)) {
             console.log("Facet already deployed:", facet);
         } else {
-            address deployed = CreateX.create2(msg.sender, initCode);
+            address deployed = CreateX.create2(deployer, initCode);
             console.log(string.concat("Deployed ", facetName, ":"), deployed);
             require(facet == deployed, "Facet address does not match");
         }
