@@ -19,7 +19,7 @@ contract SetUpTest is Test, DiamondScript("DiamondApp") {
         facetNames.push("FacetToAdd");
         facetArgs.push("");
 
-        app = deploy(abi.encode(address(this)), facetNames, facetArgs);
+        (app,) = deploy(abi.encode(address(this)), facetNames, facetArgs);
 
         assertEq(FacetToAdd(app).foo(), 42);
     }
