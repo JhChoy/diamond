@@ -27,6 +27,11 @@ contract DiamondScript is Script {
     IDiamond.FacetCut[] internal cuts;
     bytes4[] internal removeSelectors;
 
+    struct Deployment {
+        address diamond;
+        address[] facets;
+    }
+
     constructor(string memory diamondName_) {
         diamondName = diamondName_;
         diamondJson = vm.readFile(resolveCompiledOutputPath(diamondName_));
@@ -211,26 +216,29 @@ contract DiamondScript is Script {
         return vm.readFile(getDeploymentPath());
     }
 
-    function upgradeTo(string[] memory facetNames, bytes[] memory args) internal returns (address[] memory newFacets) {
+    function upgradeTo(string[] memory facetNames, bytes[] memory args)
+        internal
+        returns (Deployment memory deployment)
+    {
         return upgradeTo(loadDeployment(), facetNames, args);
     }
 
     function upgradeTo(string memory deploymentJson, string[] memory facetNames, bytes[] memory args)
         internal
-        returns (address[] memory newFacets)
+        returns (Deployment memory deployment)
     {
-        address diamond = deploymentJson.readAddress(string.concat(".", diamondName));
+        deployment.diamond = deploymentJson.readAddress(string.concat(".", diamondName));
         if (facetNames.length != args.length) {
             revert("Facet names and args length mismatch");
         }
-        newFacets = new address[](facetNames.length);
+        deployment.facets = new address[](facetNames.length);
 
         for (uint256 i = 0; i < facetNames.length; ++i) {
             console.log("Upgrading facet:", facetNames[i]);
 
             (address newFacet, bytes4[] memory newSelectors, string[] memory newSelectorNames) =
                 _deployNewFacet(facetNames[i], args[i]);
-            newFacets[i] = newFacet;
+            deployment.facets[i] = newFacet;
 
             if (deploymentJson.keyExists(string.concat(".", facetNames[i]))) {
                 address oldFacet = deploymentJson.readAddress(string.concat(".", facetNames[i]));
@@ -240,7 +248,7 @@ contract DiamondScript is Script {
                     continue;
                 }
 
-                _upgradeFacet(diamond, oldFacet, newFacet, newSelectors, newSelectorNames);
+                _upgradeFacet(deployment.diamond, oldFacet, newFacet, newSelectors, newSelectorNames);
             } else {
                 console.log("  Adding above all selectors");
                 cuts.push(
@@ -265,35 +273,52 @@ contract DiamondScript is Script {
 
         if (cuts.length > 0) {
             console.log("Applying cuts...");
-            IDiamondCut(diamond).diamondCut(cuts, address(0), "");
+            IDiamondCut(deployment.diamond).diamondCut(cuts, address(0), "");
             console.log("Done\n");
         } else {
             console.log("No changes to apply");
         }
     }
 
-    function deploy(bytes memory args) internal returns (address, address[] memory) {
+    function upgradeToAndSave(string[] memory facetNames, bytes[] memory args)
+        internal
+        returns (Deployment memory deployment)
+    {
+        deployment = upgradeTo(facetNames, args);
+        saveDeployment(deployment.diamond, facetNames, deployment.facets);
+    }
+
+    function upgradeToAndSave(string memory deploymentJson, string[] memory facetNames, bytes[] memory args)
+        internal
+        returns (Deployment memory deployment)
+    {
+        deployment = upgradeTo(deploymentJson, facetNames, args);
+        saveDeployment(deployment.diamond, facetNames, deployment.facets);
+    }
+
+    function deploy(bytes memory args) internal returns (Deployment memory deployment) {
         return deploy(args, new string[](0), new bytes[](0));
     }
 
-    function deploy(bytes memory args, bytes11 salt) internal returns (address, address[] memory) {
+    function deploy(bytes memory args, bytes11 salt) internal returns (Deployment memory deployment) {
         return deploy(args, salt, new string[](0), new bytes[](0));
     }
 
     function deploy(bytes memory args, string[] memory facetNames, bytes[] memory facetArgs)
         internal
-        returns (address, address[] memory)
+        returns (Deployment memory deployment)
     {
         return deploy(args, bytes11(uint88(block.timestamp)), facetNames, facetArgs);
     }
 
     function deploy(bytes memory args, bytes11 salt, string[] memory facetNames, bytes[] memory facetArgs)
         internal
-        returns (address, address[] memory)
+        returns (Deployment memory deployment)
     {
         address diamond = deployDiamond(salt, args);
         address[] memory newFacets = deployFacets(diamond, facetNames, facetArgs);
-        return (diamond, newFacets);
+        deployment = Deployment({diamond: diamond, facets: newFacets});
+        return deployment;
     }
 
     function buildDeploymentJson(address diamond, string[] memory facetNames, address[] memory newFacets)
@@ -313,27 +338,27 @@ contract DiamondScript is Script {
         vm.writeJson(json, getDeploymentPath());
     }
 
-    function deployAndSave(bytes memory args) internal returns (address, address[] memory) {
+    function deployAndSave(bytes memory args) internal returns (Deployment memory deployment) {
         return deployAndSave(args, new string[](0), new bytes[](0));
     }
 
-    function deployAndSave(bytes memory args, bytes11 salt) internal returns (address, address[] memory) {
+    function deployAndSave(bytes memory args, bytes11 salt) internal returns (Deployment memory deployment) {
         return deployAndSave(args, salt, new string[](0), new bytes[](0));
     }
 
     function deployAndSave(bytes memory args, string[] memory facetNames, bytes[] memory facetArgs)
         internal
-        returns (address, address[] memory)
+        returns (Deployment memory deployment)
     {
         return deployAndSave(args, bytes11(uint88(block.timestamp)), facetNames, facetArgs);
     }
 
     function deployAndSave(bytes memory args, bytes11 salt, string[] memory facetNames, bytes[] memory facetArgs)
         internal
-        returns (address, address[] memory)
+        returns (Deployment memory deployment)
     {
-        (address diamond, address[] memory newFacets) = deploy(args, salt, facetNames, facetArgs);
-        saveDeployment(diamond, facetNames, newFacets);
-        return (diamond, newFacets);
+        deployment = deploy(args, salt, facetNames, facetArgs);
+        saveDeployment(deployment.diamond, facetNames, deployment.facets);
+        return deployment;
     }
 }

@@ -43,7 +43,7 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         bytes[] memory args = new bytes[](1);
         args[0] = "";
 
-        (address diamond,) = deploy(abi.encode(msg.sender), facetNames, args);
+        address diamond = deploy(abi.encode(msg.sender), facetNames, args).diamond;
         assertEq(IDiamondApp(diamond).owner(), msg.sender);
         vm.stopPrank();
     }
@@ -51,15 +51,15 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
     function test_upgradeDiamond() public {
         vm.startPrank(msg.sender);
 
-        (address diamond,) = deploy(abi.encode(msg.sender));
-        string memory deploymentJson = buildDeploymentJson(diamond, new string[](0), new address[](0));
+        Deployment memory deployment = deploy(abi.encode(msg.sender));
+        string memory deploymentJson = buildDeploymentJson(deployment.diamond, new string[](0), deployment.facets);
         string[] memory facetNames = new string[](1);
         facetNames[0] = "FacetToAdd";
         bytes[] memory args = new bytes[](1);
         args[0] = "";
 
         upgradeTo(deploymentJson, facetNames, args);
-        assertEq(FacetToAdd(diamond).foo(), 42);
-        assertEq(FacetToAdd(diamond).bar(), 43);
+        assertEq(FacetToAdd(deployment.diamond).foo(), 42);
+        assertEq(FacetToAdd(deployment.diamond).bar(), 43);
     }
 }
