@@ -39,6 +39,12 @@ contract DiamondScript is Script {
         }
     }
 
+    modifier broadcast() {
+        vm.startBroadcast();
+        _;
+        vm.stopBroadcast();
+    }
+
     function getFileName() internal view virtual returns (string memory) {
         return string.concat(diamondName, ".", network);
     }
