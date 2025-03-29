@@ -1,66 +1,15 @@
-## Foundry
+# Foundry Diamond Library (with CreateX)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This repository provides a convenient way to implement the Diamond Proxy pattern ([EIP-2535](https://eips.ethereum.org/EIPS/eip-2535)) in a Foundry (Forge) environment, along with [CreateX](https://github.com/pcaversaccio/createx) integration for multiple deployment methods (create2, create3, etc.).
 
-Foundry consists of:
+## Overview
+The main goal is to simplify the creation and management of modular, upgradeable smart contracts by leveraging the Diamond Proxy pattern.
+This project is inspired by [diamond-3-hardhat](https://github.com/mudgen/diamond-3-hardhat).
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+You can find the sample boilerplate code at [diamond-boilerplate](https://github.com/JhChoy/diamond-boilerplate). To get started immediately, clone this repository.
 
-## Documentation
+## Contribution
+All contributions are welcome. If you find any issues, please report them in the Issues section.
 
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+## License
+MIT
