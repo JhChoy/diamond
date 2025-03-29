@@ -39,11 +39,15 @@ contract DiamondScript is Script {
         }
     }
 
-    function _getDeploymentPath() internal view virtual returns (string memory) {
-        return string.concat(root, "/deployments/", diamondName, ".", network, ".json");
+    function getFileName() internal view virtual returns (string memory) {
+        return string.concat(diamondName, ".", network);
     }
 
-    function _getDeployer() internal returns (address) {
+    function getDeploymentPath() internal view virtual returns (string memory) {
+        return string.concat(root, "/deployments/", getFileName(), ".json");
+    }
+
+    function getDeployer() internal returns (address) {
         (VmSafe.CallerMode mode, address msgSender,) = vm.readCallers();
         return uint256(mode) == 0 ? address(this) : msgSender;
     }
@@ -69,7 +73,7 @@ contract DiamondScript is Script {
     }
 
     function deployDiamond(bytes11 salt, bytes memory args) internal returns (address) {
-        address deployer = _getDeployer();
+        address deployer = getDeployer();
         bytes32 encodedSalt = bytes32(abi.encodePacked(deployer, hex"00", salt));
         console.log(string.concat("Deploying ", diamondName, "..."));
 
@@ -86,7 +90,7 @@ contract DiamondScript is Script {
     {
         string memory json = vm.readFile(resolveCompiledOutputPath(facetName));
         bytes memory initCode = abi.encodePacked(json.readBytes(".bytecode.object"), args);
-        address deployer = _getDeployer();
+        address deployer = getDeployer();
         address facet = CreateX.computeCreate2Address(deployer, initCode);
 
         if (facet.codehash != bytes32(0)) {
@@ -198,7 +202,7 @@ contract DiamondScript is Script {
     }
 
     function loadDeployment() internal view returns (string memory deploymentJson) {
-        return vm.readFile(_getDeploymentPath());
+        return vm.readFile(getDeploymentPath());
     }
 
     function upgradeTo(string[] memory facetNames, bytes[] memory args) internal returns (address[] memory newFacets) {
@@ -300,7 +304,7 @@ contract DiamondScript is Script {
 
     function saveDeployment(address diamond, string[] memory facetNames, address[] memory newFacets) internal {
         string memory json = buildDeploymentJson(diamond, facetNames, newFacets);
-        vm.writeJson(json, _getDeploymentPath());
+        vm.writeJson(json, getDeploymentPath());
     }
 
     function deployAndSave(bytes memory args) internal returns (address, address[] memory) {
