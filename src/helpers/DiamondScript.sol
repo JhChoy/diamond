@@ -325,12 +325,11 @@ contract DiamondScript is Script {
         internal
         returns (string memory)
     {
-        string memory json = "";
-        json = vm.serializeAddress(json, diamondName, diamond);
+        string memory rootKey = "root key";
         for (uint256 i = 0; i < facetNames.length; ++i) {
-            json = vm.serializeAddress(json, facetNames[i], newFacets[i]);
+            vm.serializeAddress(rootKey, facetNames[i], newFacets[i]);
         }
-        return json;
+        return vm.serializeAddress(rootKey, diamondName, diamond);
     }
 
     function saveDeployment(address diamond, string[] memory facetNames, address[] memory newFacets) internal {
