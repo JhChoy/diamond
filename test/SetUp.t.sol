@@ -21,10 +21,10 @@ contract SetUpTest is Test, DiamondScript("DiamondApp") {
 
         app = deploy(abi.encode(address(this)), facetNames, facetArgs).diamond;
 
-        assertEq(FacetToAdd(app).foo(), 42);
+        assertEq(FacetToAdd(app).fooAdd(), 42);
     }
 
     function test_simple() public view {
-        assertEq(FacetToAdd(app).bar(), 43);
+        assertEq(FacetToAdd(app).barAdd(), 43);
     }
 }

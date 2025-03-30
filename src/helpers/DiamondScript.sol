@@ -231,6 +231,25 @@ contract DiamondScript is Script {
             revert("Facet names and args length mismatch");
         }
         deployment.facets = new address[](facetNames.length);
+        string[] memory oldFacetNames = vm.parseJsonKeys(deploymentJson, "$");
+        for (uint256 i = 0; i < oldFacetNames.length; ++i) {
+            bool found = false;
+            for (uint256 j = 0; j < facetNames.length; ++j) {
+                if (keccak256(bytes(oldFacetNames[i])) == keccak256(bytes(facetNames[j]))) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                console.log("Removing facet:", oldFacetNames[i]);
+                address oldFacet = deploymentJson.readAddress(string.concat(".", oldFacetNames[i]));
+                bytes4[] memory oldSelectors = IDiamondLoupe(deployment.diamond).facetFunctionSelectors(oldFacet);
+                for (uint256 j = 0; j < oldSelectors.length; ++j) {
+                    console.log("    Removing selector:", toString(oldSelectors[j]));
+                    removeSelectors.push(oldSelectors[j]);
+                }
+            }
+        }
 
         for (uint256 i = 0; i < facetNames.length; ++i) {
             console.log("Upgrading facet:", facetNames[i]);
@@ -268,6 +287,12 @@ contract DiamondScript is Script {
                     functionSelectors: removeSelectors
                 })
             );
+            if (cuts.length > 1) {
+                // @dev switch the first and last cuts to execute the remove cut first
+                IDiamond.FacetCut memory tmp = cuts[0];
+                cuts[0] = cuts[cuts.length - 1];
+                cuts[cuts.length - 1] = tmp;
+            }
         }
 
         if (cuts.length > 0) {
