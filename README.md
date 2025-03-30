@@ -8,6 +8,38 @@ This project is inspired by [diamond-3-hardhat](https://github.com/mudgen/diamon
 
 You can find the sample boilerplate code at [diamond-boilerplate](https://github.com/JhChoy/diamond-boilerplate). To get started immediately, clone this repository.
 
+## Installation
+```bash
+forge install JhChoy/diamond
+```
+
+## Features
+- Diamond Proxy pattern implementation
+- CreateX integration for deterministic deployments
+- Modular contract architecture
+- Upgradeable smart contracts
+- Chain-agnostic deployment addresses
+
+## Project Structure
+```
+diamond/
+├── src/
+│   ├── diamond/        # Core Diamond implementation
+│   ├── interfaces/     # Contract interfaces
+│   └── libraries/      # Shared libraries
+├── test/              # Test files
+└── script/            # Deployment scripts
+```
+
+## Testing
+```bash
+forge test
+```
+
+## Why CreateX?
+Create3: Since DiamondApp should be deployed only once per project, we use Create3 to ensure a deterministic, chain-agnostic address for deployment.
+Create2: Facets are implementation contracts that need to be deployed once per chain. During upgrades, if the contract code changes, new deployments are required, which is why we utilize Create2.
+
 ## Contribution
 All contributions are welcome. If you find any issues, please report them in the Issues section.
 
