@@ -123,20 +123,19 @@ contract DiamondScript is Script {
         return (facet, selectors, selectorNames);
     }
 
-    function deployFacets(address diamond, string[] memory facetNames, bytes[] memory args)
+    function deployFacets(string[] memory facetNames, bytes[] memory args)
         internal
-        returns (address[] memory newFacets)
+        returns (IDiamond.FacetCut[] memory facetCuts)
     {
         console.log("Deploying facets...");
         if (facetNames.length == 0) {
             console.log("No facets to deploy\n");
-            return newFacets;
+            return facetCuts;
         }
-        IDiamond.FacetCut[] memory facetCuts = new IDiamond.FacetCut[](facetNames.length);
+        facetCuts = new IDiamond.FacetCut[](facetNames.length);
         if (facetNames.length != args.length) {
             revert("Facet names and args length mismatch");
         }
-        newFacets = new address[](facetNames.length);
         for (uint256 i = 0; i < facetNames.length; ++i) {
             (address facet, bytes4[] memory selectors,) = _deployNewFacet(facetNames[i], args[i]);
             facetCuts[i] = IDiamond.FacetCut({
@@ -144,11 +143,7 @@ contract DiamondScript is Script {
                 action: IDiamond.FacetCutAction.Add,
                 functionSelectors: selectors
             });
-            newFacets[i] = facet;
         }
-        console.log("Cutting diamond...");
-        IDiamondCut(diamond).diamondCut(facetCuts, address(0), "");
-        console.log("Done\n");
     }
 
     function _upgradeFacet(
@@ -340,7 +335,16 @@ contract DiamondScript is Script {
         returns (Deployment memory deployment)
     {
         address diamond = deployDiamond(salt, args);
-        address[] memory newFacets = deployFacets(diamond, facetNames, facetArgs);
+        IDiamond.FacetCut[] memory facetCuts = deployFacets(facetNames, facetArgs);
+
+        console.log("Cutting diamond...");
+        IDiamondCut(diamond).diamondCut(facetCuts, address(0), "");
+        console.log("Done\n");
+
+        address[] memory newFacets = new address[](facetCuts.length);
+        for (uint256 i = 0; i < facetCuts.length; ++i) {
+            newFacets[i] = facetCuts[i].facetAddress;
+        }
         deployment = Deployment({diamond: diamond, facets: newFacets});
         return deployment;
     }
