@@ -163,7 +163,6 @@ contract DiamondScript is Script {
 
         addSelectors = new bytes4[](0);
         replaceSelectors = new bytes4[](0);
-        removeSelectors = new bytes4[](0);
 
         for (uint256 i; i < newSelectors.length; ++i) {
             address remoteFacet = IDiamondLoupe(diamond).facetAddress(newSelectors[i]);
