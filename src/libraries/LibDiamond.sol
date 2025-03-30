@@ -13,7 +13,7 @@ library LibDiamond {
     using LibDiamond for Diamond.Storage;
 
     error IncorrectFacetCutAction();
-    error NoSelectorsInFace();
+    error NoSelectorsInFacet();
     error FunctionAlreadyExists();
     error FacetAddressIsZero();
     error FacetAddressIsNotZero();
@@ -51,7 +51,7 @@ library LibDiamond {
         internal
     {
         if (_functionSelectors.length == 0) {
-            revert NoSelectorsInFace();
+            revert NoSelectorsInFacet();
         }
         if (_facetAddress == address(0)) {
             revert FacetAddressIsZero();
@@ -78,7 +78,7 @@ library LibDiamond {
         internal
     {
         if (_functionSelectors.length == 0) {
-            revert NoSelectorsInFace();
+            revert NoSelectorsInFacet();
         }
         if (_facetAddress == address(0)) {
             revert FacetAddressIsZero();
@@ -106,7 +106,7 @@ library LibDiamond {
         internal
     {
         if (_functionSelectors.length == 0) {
-            revert NoSelectorsInFace();
+            revert NoSelectorsInFacet();
         }
         // if function does not exist then do nothing and return
         if (_facetAddress != address(0)) {
