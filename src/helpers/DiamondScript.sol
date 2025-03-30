@@ -118,7 +118,7 @@ contract DiamondScript is Script {
         for (uint256 i = 0; i < selectorNames.length; ++i) {
             bytes4 selector = bytes4(keccak256(bytes(selectorNames[i])));
             selectors[i] = selector;
-            console.log(string.concat("    ", selectorNames[i], ": ", vm.toString(selector)));
+            console.log(string.concat("    ", selectorNames[i], ": ", toString(selector)));
         }
         return (facet, selectors, selectorNames);
     }
@@ -187,7 +187,7 @@ contract DiamondScript is Script {
                 }
             }
             if (!found) {
-                console.log(string.concat("    Removing selector ", vm.toString(oldSelectors[i])));
+                console.log(string.concat("    Removing selector ", toString(oldSelectors[i])));
                 removeSelectors.push(oldSelectors[i]);
             }
         }
@@ -358,5 +358,12 @@ contract DiamondScript is Script {
         deployment = deploy(args, salt, facetNames, facetArgs);
         saveDeployment(deployment.diamond, facetNames, deployment.facets);
         return deployment;
+    }
+
+    function toString(bytes4 selector) internal pure returns (string memory result) {
+        result = vm.toString(selector);
+        assembly {
+            mstore(result, 10)
+        }
     }
 }
