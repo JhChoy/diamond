@@ -226,7 +226,8 @@ contract DiamondScript is Script {
             revert("Facet names and args length mismatch");
         }
         deployment.facets = new address[](facetNames.length);
-        string[] memory oldFacetNames = vm.parseJsonKeys(deploymentJson, "$");
+        string memory facetsKey = string.concat(".",diamondName, "Facets");
+        string[] memory oldFacetNames = vm.parseJsonKeys(deploymentJson, facetsKey);
         for (uint256 i = 0; i < oldFacetNames.length; ++i) {
             bool found = false;
             for (uint256 j = 0; j < facetNames.length; ++j) {
@@ -237,7 +238,7 @@ contract DiamondScript is Script {
             }
             if (!found) {
                 console.log("Removing facet:", oldFacetNames[i]);
-                address oldFacet = deploymentJson.readAddress(string.concat(".", oldFacetNames[i]));
+                address oldFacet = deploymentJson.readAddress(string.concat(facetsKey, ".", oldFacetNames[i]));
                 bytes4[] memory oldSelectors = IDiamondLoupe(deployment.diamond).facetFunctionSelectors(oldFacet);
                 for (uint256 j = 0; j < oldSelectors.length; ++j) {
                     console.log("    Removing selector:", toString(oldSelectors[j]));
@@ -253,8 +254,8 @@ contract DiamondScript is Script {
                 _deployNewFacet(facetNames[i], args[i]);
             deployment.facets[i] = newFacet;
 
-            if (deploymentJson.keyExists(string.concat(".", facetNames[i]))) {
-                address oldFacet = deploymentJson.readAddress(string.concat(".", facetNames[i]));
+            if (deploymentJson.keyExists(string.concat(facetsKey, ".", facetNames[i]))) {
+                address oldFacet = deploymentJson.readAddress(string.concat(facetsKey, ".", facetNames[i]));
 
                 if (oldFacet == newFacet) {
                     console.log(string.concat("  ", facetNames[i], " is up to date"));
@@ -353,11 +354,14 @@ contract DiamondScript is Script {
         internal
         returns (string memory)
     {
-        string memory rootKey = "root key";
+        string memory facetsKey = string.concat(diamondName, "Facets");
+        string memory facetsJson = "";
         for (uint256 i = 0; i < facetNames.length; ++i) {
-            vm.serializeAddress(rootKey, facetNames[i], newFacets[i]);
+            facetsJson = vm.serializeAddress(facetsKey, facetNames[i], newFacets[i]);
         }
-        return vm.serializeAddress(rootKey, diamondName, diamond);
+        string memory rootKey = "root key";
+        vm.serializeAddress(rootKey, diamondName, diamond);
+        return vm.serializeString(rootKey, facetsKey, facetsJson);
     }
 
     function saveDeployment(address diamond, string[] memory facetNames, address[] memory newFacets) internal {
