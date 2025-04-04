@@ -226,7 +226,7 @@ contract DiamondScript is Script {
             revert("Facet names and args length mismatch");
         }
         deployment.facets = new address[](facetNames.length);
-        string memory facetsKey = string.concat(".",diamondName, "Facets");
+        string memory facetsKey = string.concat(".", diamondName, "Facets");
         string[] memory oldFacetNames = vm.parseJsonKeys(deploymentJson, facetsKey);
         for (uint256 i = 0; i < oldFacetNames.length; ++i) {
             bool found = false;

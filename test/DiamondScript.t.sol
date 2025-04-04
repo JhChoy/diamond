@@ -98,6 +98,6 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         assertEq(newDeployment.diamond, address(0x49404D9D86D42022eD12dbFeE58C182f9D203444));
         assertEq(newDeployment.facets.length, 2);
         assertEq(newDeployment.facets[0], address(0xbFB6c7993394f9D35CdcC112Dd41533cf79d3c52));
-        assertEq(newDeployment.facets[1], address(0x11aa9484d521FE90523D223dcD99521198E81dE4));   
+        assertEq(newDeployment.facets[1], address(0x11aa9484d521FE90523D223dcD99521198E81dE4));
     }
 }
