@@ -355,6 +355,7 @@ contract DiamondScript is Script {
         returns (string memory)
     {
         string memory facetsKey = string.concat(diamondName, "Facets");
+        vm.serializeJson(facetsKey, "{}"); // remove existing memory
         string memory facetsJson = "";
         for (uint256 i = 0; i < facetNames.length; ++i) {
             facetsJson = vm.serializeAddress(facetsKey, facetNames[i], newFacets[i]);
