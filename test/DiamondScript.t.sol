@@ -67,7 +67,13 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         assertEq(FacetToRemove(deployment.diamond).fooRemove(), 51);
         assertEq(FacetToRemove(deployment.diamond).barRemove(), 52);
 
+        assertEq(deployment.diamond, address(0x49404D9D86D42022eD12dbFeE58C182f9D203444));
+        assertEq(deployment.facets.length, 2);
+        assertEq(deployment.facets[0], address(0x14Ce377027337A1A61dE65f1F033D28776284BA4));
+        assertEq(deployment.facets[1], address(0x0A47b3207fD3E64d706133D890b880C57403b0Df));
+
         string memory deploymentJson = buildDeploymentJson(deployment.diamond, facetNames, deployment.facets);
+        console.log("deploymentJson: %s", deploymentJson);
 
         facetNames = new string[](2);
         facetNames[0] = "FacetToReplace";
@@ -76,7 +82,9 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         args[0] = abi.encode(200);
         args[1] = "";
 
-        upgradeTo(deploymentJson, facetNames, args);
+        Deployment memory newDeployment = upgradeTo(deploymentJson, facetNames, args);
+        string memory newDeploymentJson = buildDeploymentJson(newDeployment.diamond, facetNames, newDeployment.facets);
+        console.log("newDeployment: %s", newDeploymentJson);
 
         assertEq(FacetToReplace(deployment.diamond).fooReplace(), 200);
         assertEq(FacetToReplace(deployment.diamond).barReplace(), 201);
@@ -86,5 +94,10 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         FacetToRemove(deployment.diamond).fooRemove();
         vm.expectRevert("Diamond: Function does not exist");
         FacetToRemove(deployment.diamond).barRemove();
+
+        assertEq(newDeployment.diamond, address(0x49404D9D86D42022eD12dbFeE58C182f9D203444));
+        assertEq(newDeployment.facets.length, 2);
+        assertEq(newDeployment.facets[0], address(0xbFB6c7993394f9D35CdcC112Dd41533cf79d3c52));
+        assertEq(newDeployment.facets[1], address(0x11aa9484d521FE90523D223dcD99521198E81dE4));   
     }
 }
