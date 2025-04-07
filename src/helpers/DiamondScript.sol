@@ -218,6 +218,10 @@ contract DiamondScript is Script {
         return vm.readFile(getDeploymentPath());
     }
 
+    function upgrade(string[] memory facetNames, bytes[] memory args) internal returns (Deployment memory deployment) {
+        return upgradeTo(loadDeployment(), facetNames, args);
+    }
+
     function upgradeTo(string[] memory facetNames, bytes[] memory args)
         internal
         returns (Deployment memory deployment)
@@ -331,6 +335,18 @@ contract DiamondScript is Script {
         bytes[] memory facetArgs,
         address initContract,
         bytes memory initData
+    ) internal returns (Deployment memory) {
+        return deploy(args, salt, facetNames, facetArgs, initContract, initData, false);
+    }
+
+    function deploy(
+        bytes memory args,
+        bytes32 salt,
+        string[] memory facetNames,
+        bytes[] memory facetArgs,
+        address initContract,
+        bytes memory initData,
+        bool save
     ) internal returns (Deployment memory deployment) {
         address diamond = deployDiamond(salt, args);
         IDiamond.FacetCut[] memory facetCuts = deployFacets(facetNames, facetArgs);
@@ -349,19 +365,7 @@ contract DiamondScript is Script {
             newFacets[i] = facetCuts[i].facetAddress;
         }
         deployment = Deployment({diamond: diamond, facets: newFacets});
-        return deployment;
-    }
 
-    function deploy(
-        bytes memory args,
-        bytes32 salt,
-        string[] memory facetNames,
-        bytes[] memory facetArgs,
-        address initContract,
-        bytes memory initData,
-        bool save
-    ) internal returns (Deployment memory deployment) {
-        deployment = deploy(args, salt, facetNames, facetArgs, initContract, initData);
         if (save) {
             saveDeployment(deployment.diamond, facetNames, deployment.facets);
         }
