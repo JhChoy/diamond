@@ -219,17 +219,17 @@ contract DiamondScript is Script {
     }
 
     function upgrade(string[] memory facetNames, bytes[] memory args) internal returns (Deployment memory deployment) {
-        return upgradeTo(loadDeployment(), facetNames, args);
+        return upgrade(loadDeployment(), facetNames, args, false);
     }
 
-    function upgradeTo(string[] memory facetNames, bytes[] memory args)
+    function upgrade(string[] memory facetNames, bytes[] memory args, bool save)
         internal
         returns (Deployment memory deployment)
     {
-        return upgradeTo(loadDeployment(), facetNames, args);
+        return upgrade(loadDeployment(), facetNames, args, save);
     }
 
-    function upgradeTo(string memory deploymentJson, string[] memory facetNames, bytes[] memory args)
+    function upgrade(string memory deploymentJson, string[] memory facetNames, bytes[] memory args, bool save)
         internal
         returns (Deployment memory deployment)
     {
@@ -310,22 +310,10 @@ contract DiamondScript is Script {
         } else {
             console.log("No changes to apply");
         }
-    }
 
-    function upgradeToAndSave(string[] memory facetNames, bytes[] memory args)
-        internal
-        returns (Deployment memory deployment)
-    {
-        deployment = upgradeTo(facetNames, args);
-        saveDeployment(deployment.diamond, facetNames, deployment.facets);
-    }
-
-    function upgradeToAndSave(string memory deploymentJson, string[] memory facetNames, bytes[] memory args)
-        internal
-        returns (Deployment memory deployment)
-    {
-        deployment = upgradeTo(deploymentJson, facetNames, args);
-        saveDeployment(deployment.diamond, facetNames, deployment.facets);
+        if (save) {
+            saveDeployment(deployment.diamond, facetNames, deployment.facets);
+        }
     }
 
     function deploy(
