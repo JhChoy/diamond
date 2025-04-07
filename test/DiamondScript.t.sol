@@ -83,7 +83,7 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         args[0] = abi.encode(200);
         args[1] = "";
 
-        Deployment memory newDeployment = upgrade(deploymentJson, facetNames, args, false);
+        Deployment memory newDeployment = upgrade(deploymentJson, facetNames, args, address(0), "", false);
         string memory newDeploymentJson = buildDeploymentJson(newDeployment.diamond, facetNames, newDeployment.facets);
         console.log("newDeployment: %s", newDeploymentJson);
 

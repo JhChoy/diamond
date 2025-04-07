@@ -218,21 +218,31 @@ contract DiamondScript is Script {
         return vm.readFile(getDeploymentPath());
     }
 
-    function upgrade(string[] memory facetNames, bytes[] memory args) internal returns (Deployment memory deployment) {
-        return upgrade(loadDeployment(), facetNames, args, false);
-    }
-
-    function upgrade(string[] memory facetNames, bytes[] memory args, bool save)
+    function upgrade(string[] memory facetNames, bytes[] memory args, address initContract, bytes memory initData)
         internal
         returns (Deployment memory deployment)
     {
-        return upgrade(loadDeployment(), facetNames, args, save);
+        return upgrade(loadDeployment(), facetNames, args, initContract, initData, false);
     }
 
-    function upgrade(string memory deploymentJson, string[] memory facetNames, bytes[] memory args, bool save)
-        internal
-        returns (Deployment memory deployment)
-    {
+    function upgrade(
+        string[] memory facetNames,
+        bytes[] memory args,
+        address initContract,
+        bytes memory initData,
+        bool save
+    ) internal returns (Deployment memory deployment) {
+        return upgrade(loadDeployment(), facetNames, args, initContract, initData, save);
+    }
+
+    function upgrade(
+        string memory deploymentJson,
+        string[] memory facetNames,
+        bytes[] memory args,
+        address initContract,
+        bytes memory initData,
+        bool save
+    ) internal returns (Deployment memory deployment) {
         deployment.diamond = deploymentJson.readAddress(string.concat(".", diamondName));
         if (facetNames.length != args.length) {
             revert("Facet names and args length mismatch");
@@ -305,7 +315,12 @@ contract DiamondScript is Script {
 
         if (cuts.length > 0) {
             console.log("Applying cuts...");
-            IDiamondCut(deployment.diamond).diamondCut(cuts, address(0), "");
+            if (initContract != address(0)) {
+                console.log("Initializing diamond...");
+                console.log("  Init contract:", initContract);
+                console.log("  Init data:", vm.toString(initData));
+            }
+            IDiamondCut(deployment.diamond).diamondCut(cuts, initContract, initData);
             console.log("Done\n");
         } else {
             console.log("No changes to apply");
