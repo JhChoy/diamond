@@ -85,11 +85,10 @@ contract DiamondScript is Script {
 
     function deployDiamond(bytes11 salt, bytes memory args) internal returns (address) {
         address deployer = getDeployer();
-        bytes32 encodedSalt = bytes32(abi.encodePacked(deployer, hex"00", salt));
         console.log(string.concat("Deploying ", diamondName, "..."));
 
         address diamond =
-            CreateX.create3(deployer, encodedSalt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), args));
+            CreateX.create3(deployer, salt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), args));
         console.log(string.concat("  ", diamondName, ":"), diamond);
         console.log("Done\n");
         return diamond;
