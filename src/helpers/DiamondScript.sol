@@ -63,6 +63,14 @@ contract DiamondScript is Script {
         return uint256(mode) == 0 ? address(this) : msgSender;
     }
 
+    function computeDiamondSalt(bytes32 salt) internal view returns (bytes11) {
+        return bytes11(keccak256(abi.encodePacked(diamondName, salt)));
+    }
+
+    function computeDiamondAddress(address deployer, bytes32 salt) internal view returns (address) {
+        return CreateX.computeCreate3Address(deployer, computeDiamondSalt(salt));
+    }
+
     function resolveCompiledOutputPath(string memory name) internal view returns (string memory) {
         bool hasColon = false;
         assembly {
@@ -83,12 +91,13 @@ contract DiamondScript is Script {
         }
     }
 
-    function deployDiamond(bytes11 salt, bytes memory args) internal returns (address) {
+    function deployDiamond(bytes32 salt, bytes memory args) internal returns (address) {
         address deployer = getDeployer();
         console.log(string.concat("Deploying ", diamondName, "..."));
 
-        address diamond =
-            CreateX.create3(deployer, salt, abi.encodePacked(diamondJson.readBytes(".bytecode.object"), args));
+        address diamond = CreateX.create3(
+            deployer, computeDiamondSalt(salt), abi.encodePacked(diamondJson.readBytes(".bytecode.object"), args)
+        );
         console.log(string.concat("  ", diamondName, ":"), diamond);
         console.log("Done\n");
         return diamond;
@@ -319,7 +328,7 @@ contract DiamondScript is Script {
         return deploy(args, new string[](0), new bytes[](0));
     }
 
-    function deploy(bytes memory args, bytes11 salt) internal returns (Deployment memory deployment) {
+    function deploy(bytes memory args, bytes32 salt) internal returns (Deployment memory deployment) {
         return deploy(args, salt, new string[](0), new bytes[](0));
     }
 
@@ -327,10 +336,10 @@ contract DiamondScript is Script {
         internal
         returns (Deployment memory deployment)
     {
-        return deploy(args, bytes11(uint88(block.timestamp)), facetNames, facetArgs);
+        return deploy(args, bytes32(0), facetNames, facetArgs);
     }
 
-    function deploy(bytes memory args, bytes11 salt, string[] memory facetNames, bytes[] memory facetArgs)
+    function deploy(bytes memory args, bytes32 salt, string[] memory facetNames, bytes[] memory facetArgs)
         internal
         returns (Deployment memory deployment)
     {
@@ -377,7 +386,7 @@ contract DiamondScript is Script {
         return deployAndSave(args, new string[](0), new bytes[](0));
     }
 
-    function deployAndSave(bytes memory args, bytes11 salt) internal returns (Deployment memory deployment) {
+    function deployAndSave(bytes memory args, bytes32 salt) internal returns (Deployment memory deployment) {
         return deployAndSave(args, salt, new string[](0), new bytes[](0));
     }
 
@@ -385,10 +394,10 @@ contract DiamondScript is Script {
         internal
         returns (Deployment memory deployment)
     {
-        return deployAndSave(args, bytes11(uint88(block.timestamp)), facetNames, facetArgs);
+        return deployAndSave(args, bytes32(0), facetNames, facetArgs);
     }
 
-    function deployAndSave(bytes memory args, bytes11 salt, string[] memory facetNames, bytes[] memory facetArgs)
+    function deployAndSave(bytes memory args, bytes32 salt, string[] memory facetNames, bytes[] memory facetArgs)
         internal
         returns (Deployment memory deployment)
     {
