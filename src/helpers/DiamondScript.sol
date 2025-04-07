@@ -226,7 +226,7 @@ contract DiamondScript is Script {
             revert("Facet names and args length mismatch");
         }
         deployment.facets = new address[](facetNames.length);
-        string memory facetsKey = string.concat(".", diamondName, "Facets");
+        string memory facetsKey = string.concat(".", getFacetsKey());
         string[] memory oldFacetNames = vm.parseJsonKeys(deploymentJson, facetsKey);
         for (uint256 i = 0; i < oldFacetNames.length; ++i) {
             bool found = false;
@@ -350,11 +350,15 @@ contract DiamondScript is Script {
         return deployment;
     }
 
+    function getFacetsKey() internal view returns (string memory) {
+        return string.concat(diamondName, "Facets");
+    }
+
     function buildDeploymentJson(address diamond, string[] memory facetNames, address[] memory newFacets)
         internal
         returns (string memory)
     {
-        string memory facetsKey = string.concat(diamondName, "Facets");
+        string memory facetsKey = getFacetsKey();
         vm.serializeJson(facetsKey, "{}"); // remove existing memory
         string memory facetsJson = "";
         for (uint256 i = 0; i < facetNames.length; ++i) {
