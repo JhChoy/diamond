@@ -222,7 +222,7 @@ contract DiamondScript is Script {
         internal
         returns (Deployment memory deployment)
     {
-        return upgrade(loadDeployment(), facetNames, args, initContract, initData, false);
+        return upgrade(loadDeployment(), facetNames, args, initContract, initData, true);
     }
 
     function upgrade(
@@ -339,7 +339,7 @@ contract DiamondScript is Script {
         address initContract,
         bytes memory initData
     ) internal returns (Deployment memory) {
-        return deploy(args, salt, facetNames, facetArgs, initContract, initData, false);
+        return deploy(args, salt, facetNames, facetArgs, initContract, initData, true);
     }
 
     function deploy(
