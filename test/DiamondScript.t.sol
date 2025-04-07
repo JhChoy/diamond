@@ -68,7 +68,7 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         assertEq(FacetToRemove(deployment.diamond).fooRemove(), 51);
         assertEq(FacetToRemove(deployment.diamond).barRemove(), 52);
 
-        assertEq(deployment.diamond, address(0x49404D9D86D42022eD12dbFeE58C182f9D203444));
+        assertEq(deployment.diamond, address(0x6f6Dfbe7E43009A069f7FA845CAC17979D04097F));
         assertEq(deployment.facets.length, 2);
         assertEq(deployment.facets[0], address(0x14Ce377027337A1A61dE65f1F033D28776284BA4));
         assertEq(deployment.facets[1], address(0x0A47b3207fD3E64d706133D890b880C57403b0Df));
@@ -96,7 +96,7 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         vm.expectRevert("Diamond: Function does not exist");
         FacetToRemove(deployment.diamond).barRemove();
 
-        assertEq(newDeployment.diamond, address(0x49404D9D86D42022eD12dbFeE58C182f9D203444));
+        assertEq(newDeployment.diamond, address(0x6f6Dfbe7E43009A069f7FA845CAC17979D04097F));
         assertEq(newDeployment.facets.length, 2);
         assertEq(newDeployment.facets[0], address(0xbFB6c7993394f9D35CdcC112Dd41533cf79d3c52));
         assertEq(newDeployment.facets[1], address(0x11aa9484d521FE90523D223dcD99521198E81dE4));
