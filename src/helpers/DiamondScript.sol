@@ -383,20 +383,36 @@ contract DiamondScript is Script {
         internal
         returns (string memory)
     {
+        return buildDeploymentJson("", diamond, facetNames, newFacets);
+    }
+
+    function buildDeploymentJson(
+        string memory originalJson,
+        address diamond,
+        string[] memory facetNames,
+        address[] memory newFacets
+    ) internal returns (string memory) {
+        string memory rootKey = "root key";
+        vm.serializeJson(rootKey, originalJson);
+        vm.serializeAddress(rootKey, diamondName, diamond);
+
         string memory facetsKey = getFacetsKey();
         vm.serializeJson(facetsKey, "{}"); // remove existing memory
         string memory facetsJson = "";
         for (uint256 i = 0; i < facetNames.length; ++i) {
             facetsJson = vm.serializeAddress(facetsKey, facetNames[i], newFacets[i]);
         }
-        string memory rootKey = "root key";
-        vm.serializeAddress(rootKey, diamondName, diamond);
         return vm.serializeString(rootKey, facetsKey, facetsJson);
     }
 
     function saveDeployment(address diamond, string[] memory facetNames, address[] memory newFacets) internal {
-        string memory json = buildDeploymentJson(diamond, facetNames, newFacets);
-        vm.writeJson(json, getDeploymentPath());
+        string memory path = getDeploymentPath();
+        string memory originalJson = "";
+        if (vm.exists(path)) {
+            originalJson = vm.readFile(path);
+        }
+        string memory json = buildDeploymentJson(originalJson, diamond, facetNames, newFacets);
+        vm.writeJson(json, path);
     }
 
     function toString(bytes4 selector) internal pure returns (string memory result) {
