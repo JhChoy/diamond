@@ -393,7 +393,9 @@ contract DiamondScript is Script {
         address[] memory newFacets
     ) internal returns (string memory) {
         string memory rootKey = "root key";
-        vm.serializeJson(rootKey, originalJson);
+        if (bytes(originalJson).length > 0) {
+            vm.serializeJson(rootKey, originalJson);
+        }
         vm.serializeAddress(rootKey, diamondName, diamond);
 
         string memory facetsKey = getFacetsKey();
