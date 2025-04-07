@@ -45,7 +45,7 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         bytes[] memory args = new bytes[](1);
         args[0] = "";
 
-        address diamond = deploy(abi.encode(msg.sender), facetNames, args).diamond;
+        address diamond = deploy(abi.encode(msg.sender), bytes32(0), facetNames, args, address(0), "", false).diamond;
         assertEq(IDiamondApp(diamond).owner(), msg.sender);
         vm.stopPrank();
     }
@@ -60,7 +60,8 @@ contract DiamondScriptTest is Test, DiamondScript("DiamondApp") {
         args[0] = abi.encode(100);
         args[1] = "";
 
-        Deployment memory deployment = deploy(abi.encode(msg.sender), facetNames, args);
+        Deployment memory deployment =
+            deploy(abi.encode(msg.sender), bytes32(0), facetNames, args, address(0), "", false);
 
         assertEq(FacetToReplace(deployment.diamond).fooReplace(), 100);
         assertEq(FacetToReplace(deployment.diamond).barReplace(), 101);
